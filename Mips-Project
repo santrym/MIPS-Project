@@ -1,7 +1,6 @@
 
 
-
-# File: testprint.s
+# File: testprint.s 
 # By: Darrin G. Vaniglia, Xavier University
 # 21 December 2000
 # Modified by Liz Johnson 11/13
@@ -386,6 +385,8 @@ print_str: # add code for printing string here
 
 
 
+
+
 print_bin: # add code for printing binary here
    #  
    
@@ -397,27 +398,102 @@ print_bin: # add code for printing binary here
    move  $t0, $a1 # Stores the array into $t0
    addi  $t1, $zero, 0  # $t1 is index and index is set to zero.
    
-bipchip:       # This loop shifts the binary number left and then right, then checks to see if digit is zero.
+bipchip:       # This loop shifts the binary number right and then left, then checks to see if digit is zero.
    beq   $t1, $t5, muertedeloopo # Checks to see if the loop should end.
-   srl   $t2, $t0, 1 # Shift to the left by 1    
-   sll   $t2, $t2, 1 # Shift right by 1
-   sub   $t7, $t0, $t2  # Subtracts the original by the shifted binary number
+   srl   $t2, $t0, 1 # Shift to the right by 1    
+   sll   $t2, $t2, 1 # Shift to the left by 1
+   sub   $t7, $t0, $t2  # Subtracts the original by the shifted binary number to get remainder
 
    addi  $t3, $t7, 48   # $t3 is equl to string 1 or 0 depending on $t7
 
    sb $t3, 0($t4) # This stores $t3 into buffer.
-   addi  $t1, $t1, 1 # Iterate through array
-   addi  $t4, $t4, 1 # iterate through buffer
-   addi  $t7, $zero, 0  # clears $t7
+   addi  $t1, $t1, 1 # Increment through array
+   addi  $t4, $t4, 1 # Increment through buffer
    srl   $t0, $t0, 1 # $t0 is shifted right by 1
    
    j  bipchip     # Jump to bipchip
    
 muertedeloopo:          # loop is finished just needs to be reversed and printed
-   sub   $t4, $t4, 1 
+   sub   $t4, $t4, 1 # puts $t4 in proper location. 
    la       $a0, buffer       # set up arguments for reverse 
    la $t2, buffer 
    addi  $t2, $t2, 32   # $t2 now holds last byte in buffer
+         addi     $a1, $t2, 0 # loads $t2 into $a1 for reverse function.
+         sw       $ra, -4($sp)            # put $ra on stack to save it
+         addi     $sp,$sp,-4
+         jal      reverse                 # call reverse
+         lw       $ra,0($sp)        # restore $ra from stack
+         addi     $sp,$sp,4         
+   
+   #  -----------------------------------
+   li $v0,4
+   la $a0, buffer
+   
+   syscall
+   #  -----------------------------------
+   jr $ra
+
+
+
+
+
+
+
+
+
+print_hex:  # add code for printing hex here
+   #  
+   la $t4, buffer # $t4 is equal to the address of the buffer.
+   #addi $t3, $a1, 0 
+   addi  $t5, $zero, 8  # Stores 8 in $t5, will be checked when testing if loop should end.
+   sb $zero, 0($t4)  # Marks the stopping point in the buffer array.
+   addi  $t4, $t4, 1 # Increments through the array se we don't override zero.
+   move  $t0, $a1 # Stores the array into $t0
+   addi  $t1, $zero, 0  # $t1 holds the count/index.
+   addi  $t7, $zero, 10 # $t7 will be used to check if the value of the 4 bits is greater than 10.
+   
+bipchiper:  # This loop shifts the binary number left and then right, then checks to see if digit is zero.
+   beq   $t1, $t5, muertedeloopodos # Checks to see if the loop should end.
+   srl   $t2, $t0, 4 # Shift to the right by 4    
+   sll   $t2, $t2, 4 # Shift to the left by 4
+   sub   $t6, $t0, $t2  # Subtracts the original by the shifted binary number
+   
+   bge   $t6, $t7, gretten
+   
+   addi  $t6, $t6, 48   # 48 is added to $t6 to create the appropriate ascii character.
+
+   sb $t6, 0($t4) # This stores $t6 into buffer.
+   addi  $t4, $t4, 1 # Iterate through buffer
+   addi  $t1, $t1, 1 # iterate through count
+   
+   srl   $t0, $t0, 4 # $t0 is shifted right by 4
+
+   
+   j  bipchiper      # Jump to bipchip
+   
+gretten: # If greater than 9.
+   
+   addi  $t6, $t6, 55   # Gets appropriate uppercase ascii character
+   sb $t6, 0($t4) # stores it into buffer
+   addi  $t4, $t4, 1 # iterates through buffer
+   addi  $t1, $t1, 1 # iterates through the count
+   srl   $t0, $t0, 4 # $t0 is shifted right by 4
+   
+   j  bipchiper
+
+   
+muertedeloopodos: # la morte de la loope
+   addi  $t9, $zero, 120   # $t9 = ascii ‘x’
+   sb $t9, 0 ($t4)      # store the x
+   addi  $t4, $t4, 1    # increment the buffer
+addi  $t9, $zero, 48    # $t9 = ascii ‘0’
+sb $t9, 0($t4)    # store it, load it, suck it.
+addi  $t4, $t4, 1    # increment 
+
+   sub   $t4, $t4, 1 # because of zero
+   la       $a0, buffer       # set up arguments for reverse 
+   la $t2, buffer 
+   addi  $t2, $t2, 10   # $t2 now holds last byte in buffer
          addi     $a1, $t2, 0
          sw       $ra, -4($sp)            # put $ra on stack to save it
          addi     $sp,$sp,-4
@@ -433,24 +509,6 @@ muertedeloopo:          # loop is finished just needs to be reversed and printed
    #  -----------------------------------
    jr $ra
 
-print_hex:  # add code for printing hex here
-   #  
-   la $t0, buffer # $t4 is equal to the address of the buffer.
-   
-   addi  $t1, $zero, 8  # Stores 32 in $t5, will be checked when testing if loop should end.
-   sb $zero, 0($t0)  # Marks the stopping point in the buffer array.
-   addi  $t0, $t0, 1 # Increments through the array se we don't over ride zero.
-   move  $t0, $a1 # Stores the array into $t0
-   addi  $t2, $zero, 0  # $t1 is index and index is set to zero.
-   
-
-   
-   #  -----------------------------------
-   li $v0,4 
-   la $a0, tobedone
-   syscall
-   #  -----------------------------------
-   jr $ra
 
 print_int: # code for printing integer is here
    la $t2,buffer
@@ -500,6 +558,130 @@ skippos: # reverse buffer
    # add code here for printing float
 print_float:
    #  replace with your code
+   
+   la $t4, buffer # load buffer
+   sb $zero, 0($t4)  # Marks the stopping point in the buffer array.
+   addi  $t4, $t4, 1 # Increments through the array se we don't override zero.
+   addi  $t5, $zero, 255   # sets $t5 to 255 to check exponent
+   move  $t0, $a1 # loads arg into function
+   sll   $t1, $t0, 1 # gets rid of significand
+   srl   $t1, $t1, 24   # gets rid of the fraction
+   beq   $t1, $t5, infinani   # if exponent equal to 255 then jump to infinani   
+   
+   
+    #
+    # Add code here for not infinate or nan.
+    # 
+   
+infinani:
+   
+   sll   $t1, $t0, 1 # shifts $t0 left by 1 and stores into $t0 
+   srl   $t1, $t1, 1 # shift back
+   beq   $t1, $t0, negatron   # if equal its a NAN and branches to naner
+   
+naner:      # It matters to me. okay! back off. stay out of my nanertory.  
+      # This is like a cow fleet...like a cow army. COW HERD.
+   addi  $t8, $zero, 78 # stores asci number for "N"
+   sb $t8, 0($t4) # Stores "N" into buffer
+   addi  $t4, $t4, 1 # increments buffer
+   addi  $t8, $zero, 97 # stores ascii "a"
+   sb $t8, 0($t4) # Stores "a" into buffer
+   addi  $t4, $t4, 1 # increments buffer
+addi  $t8, $zero, 78 # stores asci number for "N"
+   sb $t8, 0($t4) # Stores "N" into buffer
+   addi  $t4, $t4, 1 # increments buffer
+
+   
+   j  muertedeloopoNAN  # jump to print
+
+
+
+
+
+
+ move $t1, $t0
+   sll $t1, $t0, 10
+   srl $t1, $t1, 10
+   beq $t1, $t0, negatron  # if same, then it is positive. if not negative.
+   
+# add code here for negatron  
+
+negatron:
+   addi $t8, $zero, 121 # this is the ascii for ‘y’
+   sb $t8, 0($t4)    # store it. bro
+   addi $t4, $t4, 1     # increment address
+addi $t8, $zero, 116 # this is the ascii code ‘t’  
+   sb $t8, 0($t4)    # store it. bruh
+   addi $t4, $t4, 1     # increment address
+   addi $t8, $zero, 105 # this is the ascii for ‘i’
+   sb $t8, 0($t4)    # store it. broseph
+   addi $t4, $t4, 1     # increment address
+   addi $t8, $zero, 110 # this is the ascii for ‘n’
+   sb $t8, 0($t4)    # store it. broski
+   addi $t4, $t4, 1     # increment address
+   addi $t8, $zero, 105 # this is the ascii for ‘i’
+   sb $t8, 0($t4)    # store it. broseph
+   addi $t4, $t4, 1     # increment address
+   addi $t8, $zero, 102 # this is ascii for ‘f’
+   sb $t8, 0($t4)    # store it. broseph
+   addi $t4, $t4, 1     # increment address
+   addi $t8, $zero, 110 # this is ascii for ‘n’
+   sb $t8, 0($t4)    # store it. broseph
+   addi $t4, $t4, 1     # increment address
+   addi $t8, $zero, 105 # this is the ascii for ‘i’
+   sb $t8, 0($t4)    # store it. broseph
+   addi $t4, $t4, 1     # increment address
+   addi $t8, $zero, 45  # this is the ascii for ‘-’
+   sb $t8, 0($t4)    # store it. broseph
+   addi $t4, $t4, 1     # increment address
+
+   j  muertedeloopodelinfinidegogo  
+
+     
+
+
+
+
+   
+   
+muertedeloopoNAN:          # loop is finished just needs to be reversed and printed
+   sub   $t4, $t4, 1 # puts $t4 in proper location. 
+   la       $a0, buffer       # set up arguments for reverse 
+   la $t2, buffer 
+   addi  $t2, $t2, 3 # $t2 now holds last byte in buffer
+         addi     $a1, $t2, 0 # loads $t2 into $a1 for reverse function.
+         sw       $ra, -4($sp)            # put $ra on stack to save it
+         addi     $sp,$sp,-4
+         jal      reverse                 # call reverse
+         lw       $ra,0($sp)        # restore $ra from stack
+         addi     $sp,$sp,4
+         j  endersgame
+   
+
+muertedeloopodelinfinidegogo: # ille mortuus est ubi ille odit # loop is finished just needs to be reversed and printed
+   sub   $t4, $t4, 1 # puts $t4 in proper location. 
+   la       $a0, buffer       # set up arguments for reverse 
+   la $t2, buffer 
+   addi  $t2, $t2, 9 # $t2 now holds last byte in buffer
+         addi     $a1, $t2, 0 # loads $t2 into $a1 for reverse function.
+         sw       $ra, -4($sp)            # put $ra on stack to save it
+         addi     $sp,$sp,-4
+         jal      reverse                 # call reverse
+         lw       $ra,0($sp)        # restore $ra from stack
+         addi     $sp,$sp,4
+         j  endersgame
+   
+
+endersgame: 
+   #  -----------------------------------
+   li $v0,4 
+   la $a0, buffer
+   syscall
+   #  -----------------------------------
+   jr $ra
+   #
+
+
    #  -----------------------------------
    li $v0,4 
    la $a0, tobedone
@@ -524,3 +706,13 @@ invalid: .asciiz "Invalid data - bye"
    la $a0, invalid
    syscall
    j  exit
+
+
+
+
+
+
+
+
+
+
